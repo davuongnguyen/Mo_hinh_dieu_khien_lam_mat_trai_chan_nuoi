@@ -108,10 +108,10 @@ void setup()
   pinMode(FAN_PIN, OUTPUT);
   digitalWrite(FAN_PIN, fan_status);
 
-  display(0,0);
-
   // In ra màn hình debug: Setup complete!
   Serial.print("Setup complete!");
+  
+  display(0,0);
 }
 
 void loop()
@@ -158,7 +158,7 @@ byte checkPin(byte pin)
     lastChangeTime = t;
   if (t - lastChangeTime > 200) 
   {
-    if (state != 0) 
+    if (state == 0) 
     {
       i = 1;
     }
@@ -287,15 +287,36 @@ void display(byte screen, byte val)
     lcd.setCursor(1,4);
     lcd.print(int(t));
     lcd.setCursor(1,7);
-    lcd.print("C");
+    lcd.print(" C");
 
     // Hiển thị độ ẩm
     lcd.setCursor(1,9);
     lcd.print("Hum:");
     lcd.setCursor(1,13);
-    lcd.print(int(t));
+    lcd.print(int(h));
     lcd.setCursor(1,15);
     lcd.print("%");
+
+    // Debug LCD
+    Serial.println("           ************************           ");
+    Serial.println("==============================================");
+    Serial.println("           ------------------------           ");    
+    Serial.println("==============================================");
+    Serial.println("           ************************           ");
+    if (mode == 0)
+      Serial.print("Manual  Fan: ");
+    else
+      Serial.print("Auto    Fan: ");
+    if (fan_status == 0)
+      Serial.println("off");
+    else
+      Serial.println(" on");
+    Serial.print("Tem:");
+    Serial.print(int(t));
+    Serial.print(" C ");
+    Serial.print("Hum:");
+    Serial.print(int(h));
+    Serial.println("%");
   }
   else if (screen == 0 && val == 1)   // Hiển thị sự thay đổi chế độ
   {
@@ -304,6 +325,23 @@ void display(byte screen, byte val)
       lcd.print("Manual");
     else
       lcd.print("Auto  ");
+
+    // Debug LCD
+    Serial.println("           ------------------------           ");
+    if (mode == 0)
+      Serial.print("Manual  Fan: ");
+    else
+      Serial.print("Auto    Fan: ");
+    if (fan_status == 0)
+      Serial.println("off");
+    else
+      Serial.println(" on");
+    Serial.print("Tem:");
+    Serial.print(int(t));
+    Serial.print(" C ");
+    Serial.print("Hum:");
+    Serial.print(int(h));
+    Serial.println("%");
   }
   else if (screen == 0 && val == 2)   // Hiển thị sự thay đổi nhiệt độ, độ ẩm
   {
@@ -311,7 +349,24 @@ void display(byte screen, byte val)
     lcd.print(int(t));
 
     lcd.setCursor(1,13);
-    lcd.print(int(t));
+    lcd.print(int(h));
+
+    // Debug LCD
+    Serial.println("           ------------------------           ");
+    if (mode == 0)
+      Serial.print("Manual  Fan: ");
+    else
+      Serial.print("Auto    Fan: ");
+    if (fan_status == 0)
+      Serial.println("off");
+    else
+      Serial.println(" on");
+    Serial.print("Tem:");
+    Serial.print(int(t));
+    Serial.print(" C ");
+    Serial.print("Hum:");
+    Serial.print(int(h));
+    Serial.println("%");
   }
   else if (screen == 1 && val == 0)   // Hiển thị màn hình thứ 2
   {
@@ -323,11 +378,28 @@ void display(byte screen, byte val)
     lcd.print(v_upper_limit);
     lcd.setCursor(1,9);
     lcd.print(".00 C");
+
+    // Debug LCD
+    Serial.println("           ************************           ");
+    Serial.println("==============================================");
+    Serial.println("           ------------------------           ");    
+    Serial.println("==============================================");
+    Serial.println("           ************************           ");
+    Serial.println("Select Tem max");
+    Serial.print("       ");
+    Serial.print(v_upper_limit);
+    Serial.println(".00 C  ");
   }
   else if (screen == 1 && val == 1)   // Hiển thị sự thay đổi của giới hạn trên nhiệt độ
   {
     lcd.setCursor(1,7);
     lcd.print(v_upper_limit);
+
+    Serial.println("           ------------------------           ");    
+    Serial.println("Select Tem max");
+    Serial.print("       ");
+    Serial.print(v_upper_limit);
+    Serial.println(".00 C  ");
   }
   else if (screen == 2 && val == 0)   // Hiển thị màn hình thứ 3
   {
@@ -339,11 +411,27 @@ void display(byte screen, byte val)
     lcd.print(v_lower_limit);
     lcd.setCursor(1,9);
     lcd.print(".00 C");
+
+    Serial.println("           ************************           ");
+    Serial.println("==============================================");
+    Serial.println("           ------------------------           ");    
+    Serial.println("==============================================");
+    Serial.println("           ************************           ");
+    Serial.println("Select Tem min");
+    Serial.print("       ");
+    Serial.print(v_lower_limit);
+    Serial.println(".00 C  ");
   }
   else if (screen == 2 && val == 1)   // Hiển thị sự thay đổi của giới hạn dưới nhiệt độ
   {
     lcd.setCursor(1,7);
     lcd.print(v_lower_limit);
+
+    Serial.println("           ------------------------           ");    
+    Serial.println("Select Tem min");
+    Serial.print("       ");
+    Serial.print(v_lower_limit);
+    Serial.println(".00 C  ");
   }
 }
 
@@ -351,7 +439,36 @@ BLYNK_WRITE(V5)
 {
   int pinValue = param.asInt();
   mode = (byte)pinValue;
-  
+
+  display(0,1);
+}
+
+BLYNK_WRITE(V6)
+{
+  upper_limit = param.asInt();
+
+  if (screen == 0)
+    v_upper_limit = upper_limit;
+}
+
+BLYNK_WRITE(V7)
+{
+  lower_limit = param.asInt();
+
+  if (screen == 0)
+    v_lower_limit = lower_limit;
+}
+
+BLYNK_WRITE(V8)
+{
+  int pinValue = param.asInt();
+  fan_status = (byte)pinValue;
+
+  digitalWrite(FAN_PIN, fan_status);
+  Blynk.virtualWrite(V10, fan_status);
+
+  if (screen == 0)
+    display(0,1);
 }
 
 #pragma endregion

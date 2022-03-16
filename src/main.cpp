@@ -64,9 +64,18 @@ float v_t = 0, v_h = 0;
 int v_upper_limit = 30;
 int v_lower_limit = 25;
 
+// Các biến cần thiết để kiểm tra kết nối wifi
+byte connect_wifi = 0;
+unsigned long time_Reconnect = 0;
+
 #pragma endregion
 
 #pragma region Nguyên mẫu các hàm
+
+// Kiểm tra trạng thái kết nối Wifi
+// In ra tên Wifi và địa chỉ IP cục bộ
+// Mỗi 10s tối đa kiểm tra 1 lần
+void wifi_connect();
 
 // Hàm đọc dữ liệu từ cảm biến DHT 11
 void sendSensor();
@@ -90,7 +99,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  Blynk.begin(auth, ssid, pass);
+  WiFi.begin(ssid, pass);
 
   dht.begin();
 
@@ -109,20 +118,45 @@ void setup()
   digitalWrite(FAN_PIN, fan_status);
 
   // In ra màn hình debug: Setup complete!
-  Serial.print("Setup complete!");
+  Serial.println("Setup complete!");
   
   display(0,0);
 }
 
 void loop()
 {
-  Blynk.run();
+  wifi_connect();
+
   timer.run();
 
   Process();
 }
 
 #pragma region Các hàm con
+
+void wifi_connect()
+{
+  if (connect_wifi == 1)
+  {
+    Blynk.run();
+    return;
+  }
+  if ((unsigned long)(millis() - time_Reconnect) > 10000)
+  {
+    time_Reconnect = millis();
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      Serial.println("Đã kết nối wifi!");
+      Serial.print("Tên Wifi: MYUI. Địa chỉ IP cục bộ: ");
+      Serial.println(WiFi.localIP());
+
+      connect_wifi = 1;
+      Blynk.begin(auth, ssid, pass);
+      return;
+    }
+    Serial.println("Đang kết nối tới wifi MYUI ...");
+  }
+}
 
 void sendSensor()
 {
@@ -133,13 +167,14 @@ void sendSensor()
     Serial.println("Failed to read from DHT sensor!");
     return;
   }
+  
+  Blynk.virtualWrite(V0, h);
+  Blynk.virtualWrite(V1, t);
+
   if (h != v_h || t != v_t)
   {
     v_h = h;
     v_t = t;
-
-    Blynk.virtualWrite(V0, h);
-    Blynk.virtualWrite(V1, t);
 
     if (screen == 0)
       display (screen,2);
@@ -148,22 +183,24 @@ void sendSensor()
 
 byte checkPin(byte pin)
 {
-  // Invert state, since button is "Active LOW"
-  byte state = digitalRead(pin);
+    byte state = digitalRead(pin);
   byte i = 0;
 
   // Debounce mechanism
   unsigned long t = millis();
-  if (state != prevState) 
-    lastChangeTime = t;
+ 
   if (t - lastChangeTime > 200) 
   {
-    if (state == 0) 
-    {
-      i = 1;
+    if (state != prevState)
+    { 
+      lastChangeTime = t;
+      if (state != 1) 
+      {
+        i = 1;
+      }
+      prevState = state;
     }
   }
-  prevState = state;
   return i;
 }
 
@@ -217,6 +254,7 @@ void Process()
       fan_status = 1;
       digitalWrite(FAN_PIN, fan_status);
       Blynk.virtualWrite(V10, fan_status);
+      Blynk.virtualWrite(V8, fan_status);
     }
     else if (screen == 1)
       v_upper_limit++;
@@ -232,6 +270,7 @@ void Process()
       fan_status = 0;
       digitalWrite(FAN_PIN, fan_status);
       Blynk.virtualWrite(V10, fan_status);
+      Blynk.virtualWrite(V8, fan_status);
     }
     else if (screen == 1)
       v_upper_limit--;
@@ -248,12 +287,14 @@ void Process()
     {
       fan_status = 1;
       Blynk.virtualWrite(V10, fan_status);
+      Blynk.virtualWrite(V8, fan_status);
       digitalWrite(FAN_PIN, fan_status);
     }
     else if (t <= lower_limit)
     {
       fan_status = 0;
       Blynk.virtualWrite(V10, fan_status);
+      Blynk.virtualWrite(V8, fan_status);
       digitalWrite(FAN_PIN, fan_status);
     }
   }
@@ -469,6 +510,11 @@ BLYNK_WRITE(V8)
 
   if (screen == 0)
     display(0,1);
+}
+
+BLYNK_CONNECTED() 
+{
+  Blynk.syncAll();
 }
 
 #pragma endregion

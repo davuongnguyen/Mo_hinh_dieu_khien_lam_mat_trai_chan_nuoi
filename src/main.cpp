@@ -512,9 +512,9 @@ BLYNK_WRITE(V8)
     display(0,1);
 }
 
-BLYNK_CONNECTED() 
+BLYNK_CONNECTED()
 {
-  Blynk.syncAll();
+  Blynk.syncVirtual(V5, V6, V7, V8);
 }
 
 #pragma endregion

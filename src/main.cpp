@@ -1,7 +1,7 @@
 // Các từ khóa cấu hình MQTT Blynk
-#define BLYNK_TEMPLATE_ID "TMPL9mSW3KIs"
-#define BLYNK_DEVICE_NAME "Project Trai Chan Nuoi"
-#define BLYNK_AUTH_TOKEN "dxT0qHPQiBHxZ5DgBpmMhe7NWEn2t0vm"
+#define BLYNK_TEMPLATE_ID "TMPLwicMkAdj"
+#define BLYNK_DEVICE_NAME "chan nuôi"
+#define BLYNK_AUTH_TOKEN "9t5qIPBZ3fFTqA3qPpKOa3ww2DY_jzMb"
 
 #define BLYNK_PRINT Serial
 
@@ -33,8 +33,8 @@
 
 // Khởi tạo chuỗi chứa thông số kết nối MQTT Blynk
 char auth[] = BLYNK_AUTH_TOKEN;
-char ssid[] = "MYUI";
-char pass[] = "22222222";
+char ssid[] = "iPhone";
+char pass[] = "123123123";
 
 // Khởi tạo cảm biến DHT
 DHT dht(DHTPIN, DHTTYPE);
@@ -63,6 +63,8 @@ byte screen = 0;
 float v_t = 0, v_h = 0;
 int v_upper_limit = 30;
 int v_lower_limit = 25;
+byte v_status_fan = 0;
+
 
 // Các biến cần thiết để kiểm tra kết nối wifi
 byte connect_wifi = 0;
@@ -183,7 +185,7 @@ void sendSensor()
 
 byte checkPin(byte pin)
 {
-    byte state = digitalRead(pin);
+  byte state = digitalRead(pin);
   byte i = 0;
 
   // Debounce mechanism
@@ -280,22 +282,26 @@ void Process()
     display(screen,1);
   }
 
+  v_status_fan = fan_status;
+  
   // Chế độ auto
   if (mode == 1)
   {
     if (t >= upper_limit)
     {
       fan_status = 1;
-      Blynk.virtualWrite(V10, fan_status);
-      Blynk.virtualWrite(V8, fan_status);
-      digitalWrite(FAN_PIN, fan_status);
     }
     else if (t <= lower_limit)
     {
-      fan_status = 0;
+      fan_status = 0;      
+    }
+    if (fan_status != v_status_fan)
+    {
+      v_status_fan = fan_status;
       Blynk.virtualWrite(V10, fan_status);
       Blynk.virtualWrite(V8, fan_status);
       digitalWrite(FAN_PIN, fan_status);
+      display(0,1);
     }
   }
 }
